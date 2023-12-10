@@ -1,27 +1,92 @@
 <pre>
 
-from simpleai.search import SearchProblem, astar
-GOAL = 'HELLO WORLD'
-class HelloProblem(SearchProblem):
- def actions(self, state):
-     if len(state) < len(GOAL):
-         return list(' ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-     else:
-         return []
- def result(self, state, action):
-     return state + action
- def is_goal(self, state):
-     return state == GOAL
- def heuristic(self, state):
-    wrong = sum([1 if state[i] != GOAL[i] else 0
-    for i in range(len(state))])
-    missing = len(GOAL) - len(state)
-    return wrong + missing
+import heapq
 
-problem = HelloProblem(initial_state='')
+class Node:
+    def __init__(self, position, parent=None):
+        self.position = position
+        self.parent = parent
+        self.g = 0  # Cost from start node to current node
+        self.h = 0  # Heuristic (estimated cost from current node to goal node)
+        self.f = 0  # Total cost (g + h)
 
-result = astar(problem)
-print(result.state)
-print(result.path())
+    def __lt__(self, other):
+        return self.f < other.f
+
+def astar(grid, start, goal):
+    open_set = []
+    closed_set = set()
+
+    start_node = Node(start)
+    goal_node = Node(goal)
+
+    heapq.heappush(open_set, start_node)
+
+    while open_set:
+        current_node = heapq.heappop(open_set)
+
+        if current_node.position == goal_node.position:
+            path = []
+            while current_node:
+                path.append(current_node.position)
+                current_node = current_node.parent
+            return path[::-1]
+
+        closed_set.add(current_node.position)
+
+        for next_position in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            node_position = (
+                current_node.position[0] + next_position[0],
+                current_node.position[1] + next_position[1],
+            )
+
+            if (
+                node_position[0] < 0
+                or node_position[1] < 0
+                or node_position[0] >= len(grid)
+                or node_position[1] >= len(grid[0])
+            ):
+                continue
+
+            if grid[node_position[0]][node_position[1]] == 1:
+                continue
+
+            if node_position in closed_set:
+                continue
+
+            new_node = Node(node_position, current_node)
+            new_node.g = current_node.g + 1
+            new_node.h = (
+                (node_position[0] - goal_node.position[0]) ** 2
+                + (node_position[1] - goal_node.position[1]) ** 2
+            )
+            new_node.f = new_node.g + new_node.h
+
+            if any(node.position == new_node.position and node.f > new_node.f for node in open_set):
+                continue
+
+            heapq.heappush(open_set, new_node)
+
+    return None  # No path found
+
+# Example usage:
+grid = [
+    [0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 0, 0, 1, 0],
+    [0, 0, 0, 1, 0],
+    [0, 0, 0, 0, 0],
+]
+
+start = (0, 0)
+goal = (4, 4)
+
+path = astar(grid, start, goal)
+
+if path:
+    print("Path found:", path)
+else:
+    print("No path found.")
+
   
 </pre>
